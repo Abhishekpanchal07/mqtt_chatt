@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_first_project/controllers/chat_controllers.dart';
-import 'package:get/get_state_manager/get_state_manager.dart';
-import 'package:get/instance_manager.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -102,7 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Align(
               alignment: chatcontroller.chatDat[index].senderId == 2 ? Alignment.topRight : Alignment.topLeft,
               child: Text(
-                   getCorrectFormatTime(chatcontroller.chatDat[index].messagetime 
+                   getCorrectFormatTime(chatcontroller.chatDat[index].messagetime ,context
                    ),
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
@@ -158,6 +158,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           Icons.emoji_emotions,
                           color: Colors.blueAccent,
                         )),
+                        // textfield for user chatting
                      Expanded(
                         child: TextField(
                       controller: chatcontroller.userchatController.value,
@@ -178,7 +179,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     )),
                     IconButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                         // Navigator.pop(context);
+                          chatcontroller.pickimage(source: ImageSource.gallery,context);
                         },
                         icon: const Icon(
                           Icons.browse_gallery,
@@ -186,7 +188,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         )),
                     IconButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                         // Navigator.pop(context);
+                         chatcontroller.pickimage(source: ImageSource.camera,context);
+                         
                         },
                         icon: const Icon(
                           Icons.camera_alt,
@@ -196,21 +200,20 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
             ),
+
+            // send message button
             MaterialButton(
               minWidth: 0,
               shape: const CircleBorder(),
               color: Colors.black,
               onPressed: () {
                chatcontroller.onsendmessagebtntap({
-  "senderId":2,
-  "receiverId":1,
-  "message":chatcontroller.userchatController.value.text,
-  "messageTime":DateTime.now().millisecondsSinceEpoch.toString()
-});
-                // if (textfiedcontroller.text.isNotEmpty) {
-                //   Apis.sendMessage(widget.userdetail, textfiedcontroller.text);
-                //   textfiedcontroller.text = '';
-                // }
+                "senderId":2,
+              "receiverId":1,
+                "message":chatcontroller.userchatController.value.text,
+                "messageTime":DateTime.now().millisecondsSinceEpoch.toString()
+              });
+                
               },
               child: const Padding(
                 padding: EdgeInsets.only(
@@ -227,105 +230,10 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     ));
   }
-
- 
-
-// Message container 
-Widget greencontainer({String ? receivedMessage}) {
-  return Expanded(
-    child: Column(
-     
-      crossAxisAlignment: CrossAxisAlignment.start,
-     // mainAxisSize: MainAxisSize.max,
-    //  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10),
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-            decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(15)),
-            child:  Text(
-              receivedMessage!,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-          child: Text(
-               getCorrectFormatTime(DateTime.now().millisecondsSinceEpoch.toString()),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-        ),
-      ],
-    ),
-  );
-    // return Row(
-    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //   children: [
-    //     Flexible(
-    //       child: Container(
-    //         padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10),
-    //         margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-    //         decoration: BoxDecoration(
-    //             color: Colors.blueAccent.withOpacity(0.3),
-    //             borderRadius: BorderRadius.circular(15)),
-    //         child:  Text(
-    //           receivedMessage!,
-    //           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-    //         ),
-    //       ),
-    //     ),
-    //     const Padding(
-    //       padding: EdgeInsets.only(right: 10),
-    //       child: Text(
-    //         '',
-    //         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-    //       ),
-    //     )
-    //   ],
-    // );
   }
 
-  Widget bluecontainer({String ? senderMessage,String?messageTime}) {
-    return SizedBox(
-      width: double.infinity,
-      height: 100,
-      child: Column(
-       
-        crossAxisAlignment: CrossAxisAlignment.end,
-       // mainAxisSize: MainAxisSize.max,
-      //  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10),
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              decoration: BoxDecoration(
-                  color: Colors.blueAccent.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(15)),
-              child:  Text(
-                senderMessage!,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-            child: Text(
-                 getCorrectFormatTime(messageTime!),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-  String getCorrectFormatTime(String readtime) {
+ // for get the sender and receiver time which we will be received from the response
+  String getCorrectFormatTime(String readtime,context) {
     final time = DateTime.fromMillisecondsSinceEpoch(int.parse(readtime));
     return TimeOfDay.fromDateTime(time).format(context);
     
@@ -340,8 +248,6 @@ Widget greencontainer({String ? receivedMessage}) {
       alignment: issend == 2 ? Alignment.topRight : Alignment.topLeft ,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 10,horizontal: 10),
-          // height: DimensionConstants.d98.h,
-          // width: DimensionConstants.d255.w,
           decoration: BoxDecoration(
             color: containerBgColor,
             borderRadius: BorderRadius.circular(15),
@@ -351,6 +257,24 @@ Widget greencontainer({String ? receivedMessage}) {
             child: Text(containerChildText!,style: const TextStyle(color: Colors.black,fontSize: 14),),))
                 
     );
-  }
 
-  }
+    } 
+    // Image Container
+    Widget imageContainer({String? imageUrl}){
+      return Container(
+        height: 200,
+        width: 300,
+        decoration: BoxDecoration(border: Border.all(
+          color: Colors.blueAccent.withOpacity(0.3),
+          
+        ),
+        borderRadius: BorderRadius.circular(10),
+        ),
+      child: Image.file(File(imageUrl!,),fit: BoxFit.contain,),
+      );
+    }
+
+
+  
+
+  

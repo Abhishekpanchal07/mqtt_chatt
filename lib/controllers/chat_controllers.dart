@@ -2,17 +2,19 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_first_project/modals/userchatmodal.dart';
 import 'package:get/state_manager.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
 class ChatController extends GetxController{
   // chat text controller 
   final userchatController = TextEditingController().obs;
-
+// variables for Storing the values 
   var userId = ''.obs;
   var receiveId = ''.obs;
   var isconnected = 'disconnected'.obs;
   var issubscribe = ' not subscribe'.obs;
+  var imagePath = ''.obs;
   var showemoji = false.obs;
 
    isshowemoji(BuildContext context){
@@ -27,13 +29,6 @@ class ChatController extends GetxController{
   // user chat list
   RxList chatDat= <UserChatModal>[].obs;
   
-
-
-
-
-
-
-
    // chat functions for mqtt 
    Future<void>  connectmqtt()async{
     // Random  random =  Random();
@@ -123,8 +118,7 @@ client.updates!.listen((List<MqttReceivedMessage<MqttMessage?>>? c) {
  final ft = UserChatModal.fromJson(jsonDecode(pt));
  chatDat.add(ft);
  print(ft.message);
- // userId.value = 'rohan';
- // print(userMessages.toString());
+ 
   print('Received message: topic is ${ft}, payload is $pt');
 });
 }
@@ -149,36 +143,39 @@ final builder = MqttClientPayloadBuilder();
  final encodedMessage = base64Encode(utf8.encode(usermessage['message'].toString()));
   usermessage['message'] = encodedMessage; // Update the 'message' field with the encoded message
   builder.addString(jsonEncode(usermessage));
-//builder.addString(base64Encode(utf8.encode(usermessage.toString())));
+
 print(jsonEncode(usermessage));
 userId.value = 'rohan';
 
-  
-//timerstamp
-//chatId  - same
-//senderId - rohan
-//receiverId - abhi
-
-
 print('Subscribing to the $pubTopic topic');
-
 
 print('Publishing our topic');
 
- // client.subscribe(pubTopic, MqttQos.atLeastOnce);
+
   client.publishMessage('topic/test', MqttQos.atLeastOnce, builder.payload!);
   
 
 }
 
 void onsendmessagebtntap(Map<String,dynamic> userMessage){
-  //client.connectionStatus?.state == MqttConnectionState.connected ?
+
   publishMessage(userMessage) ;
-  //: connectmqtt().then((value) => publishMessage(userMessage));
+ 
   userchatController.value.text = '';
 }
 
 
 // Image Picker 
+Future<void> pickimage(BuildContext context,{ImageSource ? source})async{
+  final picker = ImagePicker();
+  final pickedimage = await picker.pickImage(source:source! );
+  if(pickedimage!= null){
+    imagePath.value = pickedimage.path;
+    //Navigator.pop(context);
+  }
+  else{
+    Navigator.pop(context);
+  }
+}
 
 }

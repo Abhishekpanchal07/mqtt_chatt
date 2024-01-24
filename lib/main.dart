@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_first_project/controllers/chat_controllers.dart';
 import 'package:flutter_first_project/views/chat_screen.dart';
-import 'package:get/get.dart';
 
 void main() {
   
