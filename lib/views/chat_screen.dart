@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_first_project/controllers/chat_controllers.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -16,6 +18,8 @@ class _ChatScreenState extends State<ChatScreen> {
   
    final userchatcontroller = TextEditingController();
    final chatcontroller = Get.put(ChatController());
+  
+   
    @override
   void initState() {
     chatcontroller.connectmqtt();
@@ -90,23 +94,42 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: ListView.builder(
                   itemCount: chatcontroller.chatDat.length,
-                  itemBuilder: (context,index){
+                  itemBuilder: (context,index){  
+                   // chatcontroller.chatDat[index].message !=null ? chatcontroller.iconpath.value = StringConstants.messageseen: StringConstants.singletick;
                     return Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        messageContainer(issend:chatcontroller.chatDat[index].senderId,
+                       chatcontroller.chatDat[index].videoPath != null ? 
+                       Align(
+                        alignment: chatcontroller.chatDat[index].senderId == 1 ? Alignment.topRight : Alignment.topLeft,
+                        child: Obx(() => videoContainer(videoUrl:chatcontroller.chatDat[index].videoPath,chatcontroller: chatcontroller ))) :
+                        chatcontroller.chatDat[index].imagePath.isNotEmpty 
+                       ? Align(
+                        alignment: chatcontroller.chatDat[index].senderId == 1 ? Alignment.topRight : Alignment.topLeft,
+                        child: imageContainer(imageUrl: chatcontroller.chatDat[index].imagePath))
+                       : messageContainer(issend:chatcontroller.chatDat[index].senderId,
                         containerChildText:chatcontroller.chatDat[index].message,
                         containerBgColor: Colors.blueAccent.withOpacity(0.3),),
                        
+                        
+                       
                         Padding(
             padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-            child: Align(
-              alignment: chatcontroller.chatDat[index].senderId == 2 ? Alignment.topRight : Alignment.topLeft,
-              child: Text(
-                   getCorrectFormatTime(chatcontroller.chatDat[index].messagetime ,context
-                   ),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-            ),)
+            child: Row(
+              mainAxisAlignment: chatcontroller.chatDat[index].senderId == 1 ? MainAxisAlignment.end : MainAxisAlignment.start,
+              children: [
+                Text(
+                     getCorrectFormatTime(chatcontroller.chatDat[index].messagetime,context
+                     ),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(width: 5,),
+            
+                    Obx(() => Image.asset(chatcontroller.iconpath.value,height: 12,width: 12,))
+                    
+              ],
+            ),),
+            
                       ],
                     );
                  
@@ -177,6 +200,15 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           border: InputBorder.none),
                     )),
+                     IconButton(
+                        onPressed: () {
+                         // Navigator.pop(context);
+                          chatcontroller.pickvideo(source: ImageSource.gallery,context);
+                        },
+                        icon: const Icon(
+                          Icons.video_call_outlined,
+                          color: Colors.blueAccent,
+                        )),
                     IconButton(
                         onPressed: () {
                          // Navigator.pop(context);
@@ -208,9 +240,11 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.black,
               onPressed: () {
                chatcontroller.onsendmessagebtntap({
-                "senderId":2,
-              "receiverId":1,
+                "senderId":1,
+              "receiverId":2,
                 "message":chatcontroller.userchatController.value.text,
+                "imagePath":"",
+                 "videoPath":"",
                 "messageTime":DateTime.now().millisecondsSinceEpoch.toString()
               });
                 
@@ -245,7 +279,7 @@ class _ChatScreenState extends State<ChatScreen> {
       
       int? issend}) {
     return Align(
-      alignment: issend == 2 ? Alignment.topRight : Alignment.topLeft ,
+      alignment: issend == 1 ? Alignment.topRight : Alignment.topLeft ,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 10,horizontal: 10),
           decoration: BoxDecoration(
@@ -254,7 +288,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: Text(containerChildText!,style: const TextStyle(color: Colors.black,fontSize: 14),),))
+            child: Text(containerChildText!,style: const TextStyle(color: Colors.black,fontSize: 15),),))
                 
     );
 
@@ -262,17 +296,62 @@ class _ChatScreenState extends State<ChatScreen> {
     // Image Container
     Widget imageContainer({String? imageUrl}){
       return Container(
-        height: 200,
-        width: 300,
+      //  alignment: Alignment.topRight,
+        height: 250,
+        width: 250,
+        margin: const EdgeInsets.symmetric(horizontal: 10,vertical: 10),
         decoration: BoxDecoration(border: Border.all(
           color: Colors.blueAccent.withOpacity(0.3),
+          width: 2
           
         ),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(13),
         ),
-      child: Image.file(File(imageUrl!,),fit: BoxFit.contain,),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: CachedNetworkImage(
+          height: 250,
+          width: 250,
+          fit: BoxFit.cover,
+        imageUrl: imageUrl!,
+        placeholder: (context, url) => const Center(child:  CircularProgressIndicator()),
+        errorWidget: (context, url, error) => const Icon(Icons.error),
+     ),),
+        
       );
     }
+
+     Widget videoContainer({String? videoUrl, ChatController?chatcontroller}){
+
+      chatcontroller!.videocontroller = VideoPlayerController.networkUrl(Uri.parse(
+        videoUrl!))
+      ..initialize().then((_) {
+        // Ensure the first frame is shown after the video is initialized, even before the play button has been pressed.
+      
+      });
+      return Container(
+      //  alignment: Alignment.topRight,
+        height: 250,
+        width: 250,
+        margin: const EdgeInsets.symmetric(horizontal: 10,vertical: 10),
+        decoration: BoxDecoration(border: Border.all(
+          color: Colors.blueAccent.withOpacity(0.3),
+          width: 2
+          
+        ),
+        borderRadius: BorderRadius.circular(13),
+        ),
+      child: chatcontroller.videocontroller.value.isInitialized
+              ? AspectRatio(
+                  aspectRatio: chatcontroller.videocontroller.value.aspectRatio,
+                  child: VideoPlayer(chatcontroller.videocontroller),
+                )
+              : Container(),
+        
+      );
+    }
+
+   
 
 
   

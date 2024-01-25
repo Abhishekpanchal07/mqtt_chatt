@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter_first_project/constants/string_constants.dart';
 import 'package:flutter_first_project/modals/userchatmodal.dart';
-import 'package:get/state_manager.dart';
+import 'package:flutter_first_project/services/apis.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:video_player/video_player.dart';
 
 class ChatController extends GetxController{
   // chat text controller 
@@ -14,8 +18,12 @@ class ChatController extends GetxController{
   var receiveId = ''.obs;
   var isconnected = 'disconnected'.obs;
   var issubscribe = ' not subscribe'.obs;
-  var imagePath = ''.obs;
   var showemoji = false.obs;
+  var isread = false.obs;
+  var iconpath = StringConstants.singletick.obs;
+  late VideoPlayerController videocontroller;
+  
+  
 
    isshowemoji(BuildContext context){
     FocusScope.of(context).unfocus();
@@ -31,7 +39,7 @@ class ChatController extends GetxController{
   
    // chat functions for mqtt 
    Future<void>  connectmqtt()async{
-    // Random  random =  Random();
+   
     const deviceId = 'Rohan'; // Replace with a unique identifier for each device
   const clientIdentifier = 'dart_client_$deviceId';
 final connMess = MqttConnectMessage()
@@ -40,7 +48,7 @@ final connMess = MqttConnectMessage()
       .withWillMessage('My Will message')
       .startClean() 
       .withWillQos(MqttQos.atLeastOnce);
-  print('client connecting....');
+  log('client connecting....');
   client.onDisconnected = onDisconnected;
    client.autoReconnect = true;
   client.connectionMessage = connMess;
@@ -48,20 +56,20 @@ final connMess = MqttConnectMessage()
   try {
     await client.connect();
   } on NoConnectionException catch (e) {
-    print('client exception - $e');
+    log('client exception - $e');
     client.disconnect();
   } catch (e) {
-    print('socket exception - $e');
+    log('socket exception - $e');
     client.disconnect();
   }
 
   if (client.connectionStatus!.state == MqttConnectionState.connected) {
     isconnected.value = 'client connected';
-   print('client connected');
+   log('client connected');
     subscribe();
    // publishMessage("hy muskan");
   } else {
-    print('client connection failed - disconnecting, status is ${client.connectionStatus}');
+    log('client connection failed - disconnecting, status is ${client.connectionStatus}');
     client.disconnect();
     // client.onDisconnected = onDisconnected;
     // client.onUnsubscribed = onUnsubscribed;
@@ -71,43 +79,39 @@ final connMess = MqttConnectMessage()
 }
 
 void onUnsubscribed(String? topic) {
-  print('MQTT_LOGS:: Failed to subscribe $topic');
+  log('MQTT_LOGS:: Failed to subscribe $topic');
 
-  print('OnDisconnected client callback - Client disconnection');
-  // if (client.connectionStatus!.disconnectionOrigin ==
-  //     MqttDisconnectionOrigin.solicited) {
+  log('OnDisconnected client callback - Client disconnection');
    isconnected.value = 'client disconected';
-    print('OnDisconnected callback is solicited, this is correct');
-  // }
+    log('OnDisconnected callback is solicited, this is correct');
+  
 }
 
 void onDisconnected() {
   issubscribe.value = "Not subscribe";
-  print('OnDisconnected client callback - Client disconnection');
-  // if (client.connectionStatus!.disconnectionOrigin ==
-  //     MqttDisconnectionOrigin.solicited) {
+  log('OnDisconnected client callback - Client disconnection');
    isconnected.value = 'client disconected';
-    print('OnDisconnected callback is solicited, this is correct');
-  // }
+    log('OnDisconnected callback is solicited, this is correct');
+  
  
 }
 
 /// The successful connect callback
 void onConnected() {
    isconnected.value = 'client connected';
-  print('OnConnected client callback - Client connection was sucessful');
+  log('OnConnected client callback - Client connection was sucessful');
 
 }
 
 /// Pong callback
 void pong() {
-  print('Ping response client callback invoked');
+  log('Ping response client callback invoked');
 }
 Future<void> subscribe()async{
   client.onSubscribed = onSubscribed;
 
 const topic = 'topic/test';
-print('Subscribing to the $topic topic');
+log('Subscribing to the $topic topic');
 client.subscribe(topic, MqttQos.atLeastOnce);
 
 
@@ -117,45 +121,38 @@ client.updates!.listen((List<MqttReceivedMessage<MqttMessage?>>? c) {
   final pt = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
  final ft = UserChatModal.fromJson(jsonDecode(pt));
  chatDat.add(ft);
- print(ft.message);
+ log(ft.message.toString());
  
-  print('Received message: topic is ${ft}, payload is $pt');
+  log('Received message: topic is $ft, payload is $pt');
 });
 }
 
 /// The subscribed callback
 void onSubscribed(String topic) {
   issubscribe.value = "subscribed";
-  print('Subscription confirmed for topic $topic');
+  log('Subscription confirmed for topic $topic');
 
 
 }
 void publishMessage(Map<String,dynamic> usermessage) {
   
- // print(client.connectionStatus?.state.toString() ?? "not connected" );
+ // log(client.connectionStatus?.state.toString() ?? "not connected" );
   
   
   client.published!.listen((MqttPublishMessage message) {
-  print('Published topic: topic is ${message.variableHeader!.topicName}, with Qos ${message.header!.qos}');
+  log('Published topic: topic is ${message.variableHeader!.topicName}, with Qos ${message.header!.qos}');
 });
 const pubTopic = 'topic/test';
 final builder = MqttClientPayloadBuilder();
- final encodedMessage = base64Encode(utf8.encode(usermessage['message'].toString()));
-  usermessage['message'] = encodedMessage; // Update the 'message' field with the encoded message
+String? encodedMessage;
+encodedMessage = base64Encode(utf8.encode(usermessage['message'].toString()));
+  usermessage['message'] = encodedMessage; 
   builder.addString(jsonEncode(usermessage));
-
-print(jsonEncode(usermessage));
-userId.value = 'rohan';
-
-print('Subscribing to the $pubTopic topic');
-
-print('Publishing our topic');
-
-
+log(jsonEncode(usermessage));
+log('Subscribing to the $pubTopic topic');
+log('Publishing our topic');
   client.publishMessage('topic/test', MqttQos.atLeastOnce, builder.payload!);
-  
-
-}
+  }
 
 void onsendmessagebtntap(Map<String,dynamic> userMessage){
 
@@ -168,14 +165,55 @@ void onsendmessagebtntap(Map<String,dynamic> userMessage){
 // Image Picker 
 Future<void> pickimage(BuildContext context,{ImageSource ? source})async{
   final picker = ImagePicker();
+  
   final pickedimage = await picker.pickImage(source:source! );
   if(pickedimage!= null){
-    imagePath.value = pickedimage.path;
-    //Navigator.pop(context);
+   
+   Apis.uploaduserimage(imageurl: pickedimage.path).then((value) async{
+    onsendmessagebtntap({
+                "senderId":1,
+              "receiverId":2,
+                "message":'',
+                "imagePath":value.data.url,
+                "messageTime":DateTime.now().millisecondsSinceEpoch.toString()
+              });
+   });
+   
+            
   }
   else{
-    Navigator.pop(context);
+   Get.back();
+  }
+}
+
+// Image Picker 
+Future<void> pickvideo(BuildContext context,{ImageSource ? source})async{
+  final picker = ImagePicker();
+  
+  final pickedimage = await picker.pickVideo(source:source!);
+  if(pickedimage!= null){
+   
+   Apis.uploaduserimage(imageurl: pickedimage.path).then((value) async{
+    onsendmessagebtntap({
+                "senderId":1,
+               "receiverId":2,
+                "message":'',
+                "imagePath":'',
+                "videoPath": value.data.url,
+                "messageTime":DateTime.now().millisecondsSinceEpoch.toString()
+              });
+              
+   });
+   
+            
+  }
+  else{
+   Get.back();
   }
 }
 
 }
+
+
+
+
